@@ -3,3 +3,4 @@ QUICKSTART.md
 .env
 *.zip
 .hytale-downloader-credentials.json
+hytale/
