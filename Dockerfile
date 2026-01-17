@@ -10,6 +10,8 @@ RUN addgroup -S hytale \
 
 # Copy server binary and harden permissions / capabilities
 COPY hytale/ /hytale/
+COPY server-start.sh /hytale/server-start.sh
+RUN chmod +x /hytale/server-start.sh
 
 # Install libcap as a temporary virtual package (so we can remove it later)
 # Install OpenJDK *separately* so it remains available in the final image
@@ -31,4 +33,4 @@ ENV HOME=/home/hytale
 
 # Run the server as the non-root user.  
 # Pass JVM flags to allow native access
-CMD ["java", "-Xms2G","-Xms4G", "-XX:AOTCache=/hytale/Server/HytaleServer.aot", "--enable-native-access=ALL-UNNAMED", "-jar", "/hytale/Server/HytaleServer.jar", "--assets", "/hytale/Assets.zip"]
+CMD ["ash", "/hytale/server-start.sh"]
