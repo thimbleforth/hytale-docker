@@ -1,3 +1,5 @@
 hytale-downloader-linux-amd64
 QUICKSTART.md
 .env
+.zip
+.hytale-downloader-credentials.json
