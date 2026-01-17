@@ -14,7 +14,7 @@ COPY hytale/ /hytale/
 # Install libcap as a temporary virtual package (so we can remove it later)
 # Install OpenJDK *separately* so it remains available in the final image
 RUN apk add --no-cache --virtual .cap-deps libcap \
-    && apk add --no-cache openjdk25-jre-headless \
+    && apk add --no-cache openjdk25-jre-headless libmsquic libgcc libc6-compat\
     && chmod 750 /hytale/Server/HytaleServer.jar \
     # make group the hytale group so the hytale user can execute
     && chown root:hytale /hytale/* \
@@ -29,5 +29,6 @@ RUN apk add --no-cache --virtual .cap-deps libcap \
 USER hytale
 ENV HOME=/home/hytale
 
-# Run the server as the non-root user.
-CMD ["java", "-jar", "/hytale/Server/HytaleServer.jar", "--assets", "/hytale/Assets.zip"]
+# Run the server as the non-root user.  
+# Pass JVM flags to allow native access
+CMD ["java", "-Xms2G","-Xms4G", "-XX:AOTCache=/hytale/Server/HytaleServer.aot", "--enable-native-access=ALL-UNNAMED", "-jar", "/hytale/Server/HytaleServer.jar", "--assets", "/hytale/Assets.zip"]
