@@ -10,15 +10,28 @@ services:
     # Image runs a dedicated non-root user (`hytale`); do not override the runtime user here to avoid permission mismatches.
     env_file: .env
     working_dir: /hytale
-    environment:
-      - SERVERFILESPATH=${SERVERFILESPATH:-./data}
-    # Bind-mount a host path into the container; set SERVERFILESPATH on the host or use ./data by default
+    # Security: make rootfs read-only, provide a small writable tmpfs, drop capabilities and disable privilege escalation
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Bind-mount (writable) for server files
     volumes:
-      - "${SERVERFILESPATH:-./data}:/hytale/data:rw"
+      - "serverfiles:/hytale:rw"
     restart: unless-stopped
 
 # Usage notes:
 # - Set SERVERFILESPATH to an absolute path on the host (eg: /home/user/hytale-data) before running
-#   to control where server files are persisted. If not set, `./data` in the compose folder will be used.
+#   to control where server files are persisted.
 # - If you need host UID/GID mapping, you can set PUID/PGID in `.env`, but avoid overriding the container user unless you handle permissions intentionally.
-# - To start an interactive shell: `docker compose run --rm hytale` or `docker compose up` then `docker compose exec hytale bash`.
+
+volumes:
+  serverfiles:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SERVERFILESPATH}

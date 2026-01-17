@@ -9,7 +9,7 @@ RUN addgroup -S hytale \
     && chown -R hytale:hytale /home/hytale
 
 # Copy server binary and harden permissions / capabilities
-COPY ./hytale/ /hytale
+COPY hytale/ /hytale/
 
 # Install libcap as a temporary virtual package (so we can remove it later)
 # Install OpenJDK *separately* so it remains available in the final image
