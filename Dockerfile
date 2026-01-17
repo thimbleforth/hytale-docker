@@ -9,17 +9,16 @@ RUN addgroup -S hytale \
     && chown -R hytale:hytale /home/hytale
 
 # Copy server binary and harden permissions / capabilities
-COPY ./hytale-downloader-linux-amd64 ./hytale-server
-COPY ./hytale.zip /hytale/hytale.zip
-COPY ./.hytale-downloader-credentials.json /hytale/.hytale-downloader-credentials.json
-RUN apk add --no-cache --virtual .cap-deps libcap \
-    && chmod 750 /hytale/hytale-server && chmod 750 /hytale/hytale.zip && chmod 600 /hytale/.hytale-downloader-credentials.json \
+COPY ./hytale/ /hytale
+
+RUN apk add --no-cache --virtual .cap-deps libcap openjdk25-jre-headless  \
+    && chmod 750 /hytale/Server/HytaleServer.jar \
     # make group the hytale group so the hytale user can execute
-    && chown root:hytale /hytale/hytale-server && chown root:hytale /hytale/hytale.zip && chown root:hytale /hytale/.hytale-downloader-credentials.json \
+    && chown root:hytale /hytale/hytale/* \
     # remove any filesystem capabilities that might be present
-    && setcap -r /hytale/hytale-server || true \
+    && setcap -r /hytale/Server/HytaleServer.jar || true \
     # ensure no suid bits on the binary, zip, or credentials file
-    && chmod u-s /hytale/hytale-server && chmod u-s /hytale/hytale.zip && chmod u-s /hytale/.hytale-downloader-credentials.json \
+    && chmod u-s /hytale/Server/HytaleServer.jar \
     && apk del .cap-deps \
     && apk update && apk upgrade && rm -rf /var/cache/apk/*
 
@@ -28,4 +27,4 @@ USER hytale
 ENV HOME=/home/hytale
 
 # Run the server as the non-root user.
-CMD ["/hytale/hytale-server"]
+CMD ["java", "-jar", "/hytale/Server/HytaleServer.jar --assets /hytale/Assets.zip"]

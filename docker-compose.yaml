@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
     image: hytale-server:local
+    ports:
+      - "5520:5520/udp"
     container_name: hytale-server
     # Image runs a dedicated non-root user (`hytale`); do not override the runtime user here to avoid permission mismatches.
     env_file: .env
