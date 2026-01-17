@@ -1,4 +1,4 @@
-FROM alpine:3.14
+FROM alpine:edge
 
 WORKDIR /hytale
 
@@ -11,20 +11,23 @@ RUN addgroup -S hytale \
 # Copy server binary and harden permissions / capabilities
 COPY ./hytale/ /hytale
 
-RUN apk add --no-cache --virtual .cap-deps libcap openjdk25-jre-headless  \
+# Install libcap as a temporary virtual package (so we can remove it later)
+# Install OpenJDK *separately* so it remains available in the final image
+RUN apk add --no-cache --virtual .cap-deps libcap \
+    && apk add --no-cache openjdk25-jre-headless \
     && chmod 750 /hytale/Server/HytaleServer.jar \
     # make group the hytale group so the hytale user can execute
-    && chown root:hytale /hytale/hytale/* \
+    && chown root:hytale /hytale/* \
     # remove any filesystem capabilities that might be present
     && setcap -r /hytale/Server/HytaleServer.jar || true \
     # ensure no suid bits on the binary, zip, or credentials file
     && chmod u-s /hytale/Server/HytaleServer.jar \
     && apk del .cap-deps \
-    && apk update && apk upgrade && rm -rf /var/cache/apk/*
+    && rm -rf /var/cache/apk/*
 
 # Run the container as the non-root user for better security
 USER hytale
 ENV HOME=/home/hytale
 
 # Run the server as the non-root user.
-CMD ["java", "-jar", "/hytale/Server/HytaleServer.jar --assets /hytale/Assets.zip"]
+CMD ["java", "-jar", "/hytale/Server/HytaleServer.jar", "--assets", "/hytale/Assets.zip"]
