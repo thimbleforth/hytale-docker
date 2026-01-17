@@ -1,0 +1,27 @@
+services:
+  hytale:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hytale-server:local
+    container_name: hytale-server
+    # run as non-root by numeric UID:GID (set via environment or defaults to 1000)
+    user: "${PUID:-1000}:${PGID:-1000}"
+    entrypoint: ["bash"]
+    working_dir: /hytale
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - SERVERFILESPATH=${SERVERFILESPATH:-./data}
+    # Bind-mount a host path into the container; set SERVERFILESPATH on the host or use ./data by default
+    volumes:
+      - "${SERVERFILESPATH:-./data}:/hytale/data:rw"
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+
+# Usage notes:
+# - Set SERVERFILESPATH to an absolute path on the host (eg: /home/user/hytale-data) before running
+#   to control where server files are persisted.
+# - Optionally set PUID/PGID to map to a non-root user on the host for correct file permissions.
+# - To start an interactive shell: `docker compose run --rm hytale` or `docker compose up` then `docker compose exec hytale bash`.
