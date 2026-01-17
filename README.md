@@ -6,7 +6,7 @@ Lightweight Docker image for preparing a Hytale server using a downloader binary
 
 This repository provides a minimal Dockerfile that copies the `hytale-downloader-linux-amd64` binary from the Hytale website into an Alpine base image, and prepares a working directory at `/hytale`. The downloader is not included in the repository and is intentionally ignored (`.gitignore`).
 
-> Note: This project does not ship the downloader binary. Place your own `hytale-downloader-linux-amd64` in the repository root before building the image. You can get it from [the Hytale Accounts page](https://accounts.hytale.com/download).
+> Note: This project does not ship the downloader binary. Place your own `hytale-downloader-linux-amd64` in the repository root, and authenticate and download the game before building the image. You can get it from [the Hytale Accounts page](https://accounts.hytale.com/download).
 
 ## Contents 📁
 
