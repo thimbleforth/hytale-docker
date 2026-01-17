@@ -11,7 +11,7 @@ RUN addgroup -S hytale \
 # Copy server binary and harden permissions / capabilities
 COPY ./hytale-downloader-linux-amd64 ./hytale-server
 COPY ./hytale.zip /hytale/hytale.zip
-COPY ./hytale-downloader-credentials.json /hytale/.hytale-downloader-credentials.json
+COPY ./.hytale-downloader-credentials.json /hytale/.hytale-downloader-credentials.json
 RUN apk add --no-cache --virtual .cap-deps libcap \
     && chmod 750 /hytale/hytale-server && chmod 750 /hytale/hytale.zip && chmod 600 /hytale/.hytale-downloader-credentials.json \
     # make group the hytale group so the hytale user can execute
