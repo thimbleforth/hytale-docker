@@ -7,17 +7,15 @@ services:
     container_name: hytale-server
     # run as non-root by numeric UID:GID (set via environment or defaults to 1000)
     user: "${PUID:-1000}:${PGID:-1000}"
-    entrypoint: ["bash"]
+    entrypoint: ["ash"]
     working_dir: /hytale
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
-      - SERVERFILESPATH=${SERVERFILESPATH:-./data}
+      - SERVERFILESPATH=${SERVERFILESPATH:-/hytale}
     # Bind-mount a host path into the container; set SERVERFILESPATH on the host or use ./data by default
     volumes:
-      - "${SERVERFILESPATH:-./data}:/hytale/data:rw"
-    tty: true
-    stdin_open: true
+      - "${SERVERFILESPATH:-/hytale}:/hytale/data:rw"
     restart: unless-stopped
 
 # Usage notes:
