@@ -1,93 +1,106 @@
 # Hytale Server Docker 🧱🐉
 
-Lightweight Docker image for preparing a Hytale server using a downloader binary.
+Lightweight Docker image and Compose stack for running a Hytale server.
 
-This really is for *running* the server after you've downloaded it and authenticated it with the Hytale main server. This repo does not automatically pull down the server, authenticate for you, AND then create the Docker image. It only does that last part.
+This repository *does not* download or authenticate the Hytale server for you. It provides a minimal, hardened image and a recommended Compose configuration to run the server once you've obtained the server files.
+
+---
 
 ## Overview 🔧
 
-This repository provides a minimal Dockerfile that copies the `hytale-downloader-linux-amd64` binary from the Hytale website into an Alpine base image, and prepares a working directory at `/hytale`. The downloader is not included in the repository and is intentionally ignored (`.gitignore`).
+- **Base image:** Alpine (edge)
+- **Runtime user:** non-root `hytale` (created in the image)
+- **Where files live:** `/hytale` inside the container
+- **JRE:** OpenJDK package is installed in the image (currently `openjdk25-jre-headless`)
+- **Entrypoint:** `ash /hytale/server-start.sh` (runs as the `hytale` user)
 
-> Note: This project does not ship the downloader binary. Place your own `hytale-downloader-linux-amd64` in the repository root, and authenticate and download the game before building the image. You can get it from [the Hytale Accounts page](https://accounts.hytale.com/download).
-> Note again: the Dockerfile will handle extracting the .zip file, installing the JRE, and running the server for you. All you have to do is download it first, because right now it keeps breaking but downloading it first is a one-shot thing and I'm lazy.
+The Dockerfile copies a local `hytale/` directory (if present) and `server-start.sh` into the image. The repository intentionally ignores the `hytale/` directory by default so you can keep server files out of source control; you can either include extracted server files when building the image or mount them from a host directory at runtime.
 
-### IMPORTANT: Running the Hytale Server
+---
 
-Start the server by copying the included `server-start.sh` file into the chosen volume storage.
+## Two supported workflows 🔁
 
-Be sure to `chmod 750` the script file.
+1. **Include server files in the image (local build)**
+   - Place the extracted server files (the `Server/` directory, `HytaleServer.aot`, `Assets.zip`, etc.) into a local `hytale/` directory next to the `Dockerfile` and build the image:
 
-Then, by connecting to the Docker container, running `ash`, in context of the `hytale` user, run the script.
+   ```sh
+   docker build -t hytale-server .
+   ```
 
-It'll take you through the rest.
+   - This bakes the server files into the image (useful for immutable, single-file images).
 
-Per the Hytale website's [Hytale Server Manual page](https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual#server-setup), you should do the following things AFTER downloading and extracting the server.
+2. **Use Docker Compose with a host volume (recommended)**
+   - Set `SERVERFILESPATH` to an absolute host path (e.g. `/home/you/hytale-data`) and run:
 
-### Authentication
+   ```sh
+   # example: create host folder and give it the right permissions
+   mkdir -p /home/you/hytale-data
+   chmod 750 /home/you/hytale-data
 
-After first launch, authenticate your server.
-`/auth login device`
+   # start the stack
+   docker compose up --build
+   ```
 
-```plaintext
-===================================================================
-DEVICE AUTHORIZATION
-===================================================================
-Visit: https://accounts.hytale.com/device
-Enter code: ABCD-1234
-Or visit: https://accounts.hytale.com/device?user_code=ABCD-1234
-===================================================================
-Waiting for authorization (expires in 900 seconds)...
-[User completes authorization in browser]
-Authentication successful! Mode: OAUTH_DEVICE
-```
+   - The Compose stack mounts the host path as a bind-mounted volume at `/hytale` (see `docker-compose.yaml`). Note: when using the volume, copy `server-start.sh` into the host directory (it will hide the image's `/hytale` contents when mounted):
 
-Once authenticated, your server can accept player connections.
+   ```sh
+   cp server-start.sh /home/you/hytale-data/
+   chmod 750 /home/you/hytale-data/server-start.sh
+   ```
 
-## Contents 📁
+   - The service runs with a **read-only root filesystem**, `tmpfs` for `/tmp`, dropped capabilities, and `no-new-privileges` for improved security.
 
-- `Dockerfile` - builds an Alpine image and sets `/hytale` as the working dir.
-- `docker-compose.yaml` - builds the Compose stack, defines the persistent volume, port, and hardens the image.
-- `LICENSE` - Apache 2.0, cuz why not.
-- `.gitignore` - ignores the downloader and `QUICKSTART.md` if present.
-- `server-start.sh` - runs Java and starts the server with sane defaults.
+---
 
-## Prerequisites
+## Runtime details & tuning 🔧
 
-1. Obtain the `hytale-downloader-linux-amd64` binary and place it in the repository root.
-
-2. Build the Docker image:
+- Default server start command (in `server-start.sh`):
 
 ```sh
-docker build -t hytale-server .
+java -Xms2G -Xmx4G -XX:AOTCache=/hytale/Server/HytaleServer.aot --enable-native-access=ALL-UNNAMED -jar /hytale/Server/HytaleServer.jar --assets /hytale/Assets.zip
 ```
 
-### Using Docker Compose (recommended for iterative tweaks)
+- ***It is strongly recommended*** you run `server-start.sh` inside a `byobu` window. That way, you can come back to that session after disconnecting from the Docker instance. Yes it's dirty, yes it's not proper session management, but nobody's paying me to do this either and I'm not hooking up something fancier. :)
+- Edit `server-start.sh` to adjust Java memory (`-Xms` / `-Xmx`) or other JVM flags as needed.
+- UDP port `5520` is exposed by default for game traffic (mapped in `docker-compose.yaml` as `5520:5520/udp`).
 
-This repository includes a `docker-compose.yaml` that builds the image and runs the container as a non-root user, and mounts a host path (from `SERVERFILESPATH`) into `/hytale/data`.
+---
 
-Example `.env` values you can set in your shell or a `.env` file:
+## Authentication (after first run) 🔐
 
-```env
-# Absolute path on host where server files will be stored
-SERVERFILESPATH=/home/youruser/hytale-data
+On first launch the server requires device authorization. Run this from the server console:
+
+```text
+/auth login device
 ```
 
-Start the container (build if needed):
+You will see a device code and a URL to visit. Enter the code in your browser to authorize the server (the code typically expires in 900 seconds).
 
-```sh
-docker compose up --build
-```
+---
 
-After the Compose stack is run with `docker compose up`, copy the `server-start.sh` file into the persistent volume storage.
+## Files in this repo 📁
 
-Notes:
+- `Dockerfile` — builds the image (creates non-root user, installs JRE, copies `hytale/` and `server-start.sh`).
+- `docker-compose.yaml` — recommended stack with persistent bind mount and security hardening.
+- `server-start.sh` — default JVM invocation (adjustable).
+- `.gitignore` — excludes `hytale/` and related artifacts to avoid committing server assets.
+- `LICENSE` — Apache License 2.0
 
-- Ensure `SERVERFILESPATH` is an absolute path on the host to avoid unexpected relative-path behavior.
-- The exact downloader flags may differ depending on the binary you have; check the binary's help output (e.g. `./hytale-downloader-linux-amd64 --help`).
+---
+
+## Notes & troubleshooting 💡
+
+- If you mount a host directory at `/hytale`, it hides whatever the image had at that path — remember to copy `server-start.sh` into the host folder if you want to use the image's startup logic.
+- Ensure `SERVERFILESPATH` is an **absolute path** to avoid bind-mount surprises.
+- If the downloader binary (`hytale-downloader-linux-amd64`) is used to obtain server files, run it *outside* this repository and place the extracted files into your host folder or the local `hytale/` directory before building.
+
+---
 
 ## Contributing & PRs ✅
 
-Contributions are welcome. Open an issue or PR.
+Contributions are welcome. Open an issue or a PR.
+
+---
 
 ## License 📜
 
