@@ -32,4 +32,4 @@ ENV HOME=/home/hytale
 
 # Run the server as the non-root user.  
 # Pass JVM flags to allow native access
-CMD ["byobu"]
+CMD ["ash", "/hytale/server-start.sh"]
