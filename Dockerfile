@@ -4,7 +4,7 @@ WORKDIR /hytale
 
 # Create a dedicated non-root user and group for running the server
 RUN addgroup -S hytale \
-    && adduser -S -G hytale -h /home/hytale -s /sbin/nologin hytale \
+    && adduser -S -G hytale -h /home/hytale -s /bin/ash hytale \
     && mkdir -p /home/hytale \
     && chown -R hytale:hytale /home/hytale
 
